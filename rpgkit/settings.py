@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'base',
     'dice',
     'items',
-    'actors'
+    'actors',
+    'conditions'
 ]
 
 MIDDLEWARE_CLASSES = [
