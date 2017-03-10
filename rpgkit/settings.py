@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'dice',
     'items',
     'actors',
-    'conditions'
+    'affects',
+    'spells',
 ]
 
 MIDDLEWARE_CLASSES = [

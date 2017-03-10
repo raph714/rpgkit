@@ -4,8 +4,9 @@ from django.db import models
 
 
 class Item(models.Model):
-    die_set = models.ForeignKey("dice.DieSet", related_name="items")
-    affects = models.ManyToManyField("conditions.Condition", related_name="item_affects", blank=True)
+    owner = models.ForeignKey("actors.Actor", related_name="items")
+    die_set = models.ForeignKey("dice.DieSet", related_name="items", null=True, blank=True)
+    affects = models.ManyToManyField("affects.Affect", related_name="item_affects", blank=True)
     value = models.PositiveIntegerField(default=0)
     weight = models.PositiveSmallIntegerField(default=0)
 
@@ -20,11 +21,18 @@ class Item(models.Model):
         """
 
 
-class Wieldable(Item):
+class Weapon(Item):
     """
-    Parent class for any items that can be worn or held.
+    These things can hurt!
     """
-    WEAPON = 'Weapon'
+    hit_affects = models.ManyToManyField("affects.Affect", related_name="weapon_affects", blank=True)
+    two_handed = models.BooleanField(default=False)
+
+
+class Armor(Item):
+    """
+    Protection for the wearer
+    """
     SHIELD = 'Shield'
     ARMOR = 'Armor'
     GLOVES = 'Gloves'
@@ -33,7 +41,6 @@ class Wieldable(Item):
     RING = 'Ring'
 
     ITEM_TYPE_CHOICES = (
-        (WEAPON, WEAPON),
         (SHIELD, SHIELD),
         (ARMOR, ARMOR),
         (GLOVES, GLOVES),
@@ -42,7 +49,8 @@ class Wieldable(Item):
         (RING, RING)
     )
 
-    item_type = models.CharField(max_length=10, choices=ITEM_TYPE_CHOICES, db_index=True)
+    armor_class = models.PositiveSmallIntegerField()
+    armor_type = models.CharField(max_length=10, choices=ITEM_TYPE_CHOICES, db_index=True)
 
 
 class Missile(Item):
@@ -58,3 +66,13 @@ class Missile(Item):
         (BOLT, BOLT),
         (STONE, STONE)
     )
+    missile_type = models.CharField(max_length=10, choices=ITEM_TYPE_CHOICES, db_index=True)
+
+
+class Scroll(Item):
+    """
+    Scrolls can be used to cast or learn a spell. If the user is a magic user who meets the
+    minimum requirements for casting the spell, the scroll can be learned instead of used.
+    """
+    spell = models.ForeignKey("spells.Spell", related_name="scrolls")
+
