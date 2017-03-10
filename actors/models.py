@@ -4,7 +4,8 @@ from django.db import models
 from base.models import Base
 
 
-class ActorClass(Base):
+class Actor(Base):
+
     strength = models.PositiveSmallIntegerField()
     dexterity = models.PositiveSmallIntegerField()
     constitution = models.PositiveSmallIntegerField()
@@ -17,17 +18,18 @@ class ActorClass(Base):
     mana = models.PositiveSmallIntegerField()
     armor_class = models.PositiveSmallIntegerField()
 
-    inventory = models.ManyToManyField("items.Item", related_name="inventory", null=True)
+    max_carry_weight = models.PositiveSmallIntegerField(default=0)
 
-    right_hand = models.ForeignKey("items.Item", related_name="right_hand", null=True)
-    left_hand = models.ForeignKey("items.Item", related_name="left_hand", null=True)
-    rings = models.ManyToManyField("items.Item", related_name="rings", null=True)
-    necklace = models.ForeignKey("items.Item", related_name="necklace", null=True)
-    wearing = models.ForeignKey("items.Item", related_name="wearing", null=True)
-    on_feet = models.ForeignKey("items.Item", related_name="on_feet", null=True)
-    on_hands = models.ForeignKey("items.Item", related_name="on_hands", null=True)
-    on_head = models.ForeignKey("items.Item", related_name="on_head", null=True)
+    inventory = models.ManyToManyField("items.Item", related_name="actors_inventory", blank=True)
+    wielding = models.ManyToManyField("items.Wieldable", related_name="actors_weilding", blank=True)
 
     sleeping = models.BooleanField(default=False)
-    illness = models.ManyToManyField("conditions.Condition", related_name="illness", null=True)
-    affects = models.ManyToManyField("conditions.Condition", related_name="affects", null=True)
+    affects = models.ManyToManyField("conditions.Condition", related_name="actors_affects", blank=True)
+
+    def wield(self, item):
+        """
+        The user is trying to put something on. Figure out where it's supposed to go and put it on...
+
+        We need to remove anything that occupies the slot that the thing is being wielded goes with,
+        as well as verify that it can be used by this actor.
+        """
