@@ -1,13 +1,18 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from base.models import Base
+from base.models import BaseOffense
 
 
-class Spell(Base):
+class Spell(BaseOffense):
     min_level = models.PositiveSmallIntegerField(default=1)
     mana_cost = models.PositiveSmallIntegerField(default=1)
     #distance in meters
     max_range = models.PositiveSmallIntegerField(default=10)
     affected_area = models.PositiveSmallIntegerField(default=0)
+
     affects = models.ManyToManyField("affects.Affect", related_name="spell_affects", blank=True)
+
+    def cast(self, target):
+        for affect in self.affects.all():
+            affect.apply(target)
