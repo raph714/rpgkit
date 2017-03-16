@@ -5,6 +5,26 @@ from base.models import Base
 from items.models import Armor, Jewelry
 
 
+class ActorMessageManager(models.Manager):
+    def send_message(self, actor, name, description):
+        message = ActorMessage()
+        message.name = name
+        message.description = description
+        message.recipient = actor
+        message.save()
+
+
+class ActorMessage(Base):
+    """
+    These are used for updates that should be retrieved on the API request after they are created, then
+    subsequently deleted.
+    """
+    is_delivered = models.BooleanField(default=False)
+    recipient = models.ForeignKey("actors.Actor", related_name="messages")
+
+    objects = ActorMessageManager()
+
+
 class Race(Base):
     """
     Race gives some bonuses to the Actor to which it applies.
@@ -23,11 +43,11 @@ class Actor(Base):
     base_wisdom = models.PositiveSmallIntegerField(default=10)
     base_charisma = models.PositiveSmallIntegerField(default=10)
 
-    base_resist_poison = models.PositiveSmallIntegerField(default=10)
-    base_resist_fire = models.PositiveSmallIntegerField(default=10)
-    base_resist_cold = models.PositiveSmallIntegerField(default=10)
-    base_resist_acid = models.PositiveSmallIntegerField(default=10)
-    base_resist_electricity = models.PositiveSmallIntegerField(default=10)
+    base_poison_resist = models.PositiveSmallIntegerField(default=10)
+    base_fire_resist = models.PositiveSmallIntegerField(default=10)
+    base_cold_resist = models.PositiveSmallIntegerField(default=10)
+    base_acid_resist = models.PositiveSmallIntegerField(default=10)
+    base_electricity_resist = models.PositiveSmallIntegerField(default=10)
 
     base_level = models.PositiveSmallIntegerField(default=1)
     base_hp = models.PositiveSmallIntegerField(default=10)
@@ -47,10 +67,10 @@ class Actor(Base):
     wisdom = models.PositiveSmallIntegerField(default=10)
     charisma = models.PositiveSmallIntegerField(default=10)
 
-    resist_poison = models.PositiveSmallIntegerField(default=10)
-    resist_fire = models.PositiveSmallIntegerField(default=10)
-    resist_cold = models.PositiveSmallIntegerField(default=10)
-    resist_acid = models.PositiveSmallIntegerField(default=10)
+    poison_resist = models.PositiveSmallIntegerField(default=10)
+    fire_resist = models.PositiveSmallIntegerField(default=10)
+    cold_resist = models.PositiveSmallIntegerField(default=10)
+    acid_resist = models.PositiveSmallIntegerField(default=10)
 
     level = models.PositiveSmallIntegerField(default=1)
     hp = models.PositiveSmallIntegerField(default=10)
@@ -65,6 +85,18 @@ class Actor(Base):
     """
     The rest of these are independent of current level and do not need a base version.
     """
+    damage_bonus = models.PositiveSmallIntegerField(default=0)
+    #Special kinds of damage that are done on top of, or instead of, regular attack damage.
+    damage_bonus_poison = models.PositiveSmallIntegerField(default=0)
+    damage_bonus_fire = models.PositiveSmallIntegerField(default=0)
+    damage_bonus_cold = models.PositiveSmallIntegerField(default=0)
+    damage_bonus_acid = models.PositiveSmallIntegerField(default=0)
+    damage_bonus_electricity = models.PositiveSmallIntegerField(default=0)
+
+    experience_earned = models.PositiveIntegerField(default=0)
+    experience_to_level = models.PositiveIntegerField(default=0)
+
+    #Were this actor to be killed, how much experience does the victor get?
     experience_value = models.PositiveIntegerField(default=10)
 
     race = models.ForeignKey("actors.Race", related_name="actor", blank=True, null=True)
@@ -87,6 +119,23 @@ class Actor(Base):
     sleeping = models.BooleanField(default=False)
     affects = models.ManyToManyField("affects.Affect", related_name="actor_affects", blank=True)
 
+    def apply_affects(self, affects):
+        """
+        Activate new affects and add them to the relationship with this actor.
+        Affects must be passed in as an iterable.
+        """
+        for affect in affects:
+            affect.apply(self)
+            self.affects.add(affect)
+
+    def remove_affects(self, affects):
+        """
+        Deactivate and remove a list of affects.
+        """
+        for affect in affects:
+            affect.remove(self)
+            self.affects.remove(affect)
+
     def wield_weapon(self, item):
         """
         The user is trying to put something on. Figure out where it's supposed to go and put it on...
@@ -95,24 +144,55 @@ class Actor(Base):
         as well as verify that it can be used by this actor.
         """
         if self.wielding:
-            self.affects.remove(*self.wielding.affects.all())
+            self.remove_affects(*self.wielding.affects.all())
 
         self.wielding = item
-        self.affects.add(*item.affects.all())
+        self.apply_affects(*item.affects.all())
         self.save()
 
     def wield_armor(self, item):
         """
         For each type, get the right slot, remove any affects that may be present from the current slot.
         """
-        armor_qs = self.wearing.filter(armor_type=item.armor_type)
-        if armor_qs.count() > 0:
-            cur_wearing = armor_qs.all()
-            for i in cur_wearing:
-                self.affects.remove(*i.affects.all())
+        armor_type = item.armor_type
 
-        self.wielding = item
-        self.affects.add(*item.affects.all())
+        #Seems like there must be a better way to do this.
+        if armor_type == Armor.ARMOR:
+            if self.armor:
+                self.remove_affects(*self.armor.affects.all())
+            self.apply_affects(*item.affects.all())
+            self.armor = item
+        elif armor_type == Armor.HELMET:
+            if self.helmet:
+                self.remove_affects(*self.helmet.affects.all())
+            self.apply_affects(*item.affects.all())
+            self.helmet = item
+        elif armor_type == Armor.CLOAK:
+            if self.cloak:
+                self.remove_affects(*self.cloak.affects.all())
+            self.apply_affects(*item.affects.all())
+            self.cloak = item
+        elif armor_type == Armor.SHOES:
+            if self.shoes:
+                self.remove_affects(*self.shoes.affects.all())
+            self.apply_affects(*item.affects.all())
+            self.shoes = item
+        elif armor_type == Armor.GLOVES:
+            if self.gloves:
+                self.remove_affects(*self.gloves.affects.all())
+            self.apply_affects(*item.affects.all())
+            self.gloves = item
+        elif armor_type == Armor.PANTS:
+            if self.pants:
+                self.remove_affects(*self.pants.affects.all())
+            self.apply_affects(*item.affects.all())
+            self.pants = item
+        elif armor_type == Armor.SHIELD:
+            if self.shield:
+                self.remove_affects(*self.shield.affects.all())
+            self.apply_affects(*item.affects.all())
+            self.shield = item
+
         self.save()
 
     def reset_attributes(self):
@@ -127,10 +207,10 @@ class Actor(Base):
         wisdom = base_wisdom
         charisma = base_charisma
 
-        resist_poison = base_resist_poison
-        resist_fire = base_resist_fire
-        resist_cold = base_resist_cold
-        resist_acid = base_resist_acid
+        poison_resist = base_poison_resist
+        fire_resist = base_fire_resist
+        cold_resist = base_cold_resist
+        acid_resist = base_acid_resist
 
         level = base_level
         hp = base_hp
@@ -153,20 +233,48 @@ class Actor(Base):
         self.reset_attributes()
 
         #Now go through each affect from other stuff to calculate our modified attributes.
-        for affect in self.affects.all():
-            affect.apply(self)
+        self.apply_affects(*self.affects.all())
+
+        #set new experience goal.
 
     def update_weight(self):
         """
         Go through the inventory and add up all the weights and set the current_carry_weight
         """
+        new_weight = 0
+        for item in self.items.all():
+            new_weight += item.weight
+        self.current_carry_weight = new_weight
+        self.save()
 
     def pickup_item(self, item):
         """
         User wants to pick up an item, we need to add it to the inventory, and update carry weight.
         """
+        self.inventory.add(item)
+        self.update_weight()
+
+        if self.current_carry_weight > self.max_carry_weight:
+            overweight = self.current_carry_weight - self.max_carry_weight
+            self.inventory.remove(item)
+
+            ActorMessage.objects.send_message(
+                actor=a, 
+                name="Too heavy!", 
+                description="You need to get rid of %s kilos from your inventory before you can pick this item up." % overweight
+            )
+
+        self.save()
 
     def drop_item(self, item):
         """
         Take out of the inventory and update carry weight.
         """
+        self.inventory.remove(item)
+        self.update_weight()
+        save()
+
+        #TODO put it back on the map? or just destroy it?
+
+    def deal_damage(self, actor):
+        pass

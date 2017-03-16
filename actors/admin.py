@@ -1,3 +1,7 @@
 from django.contrib import admin
+from actors.models import Actor, ActorMessage, Race
 
-# Register your models here.
+
+admin.site.register(Actor)
+admin.site.register(ActorMessage)
+admin.site.register(Race)

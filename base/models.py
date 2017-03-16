@@ -1,13 +1,17 @@
 from __future__ import unicode_literals
 
 from django.db import models
+from django.utils.text import slugify
 
 
 class Base(models.Model):
     name = models.CharField(max_length=200)
     slug = models.SlugField(db_index=True)
-    description = models.TextField()
+    description = models.TextField(null=True, blank=True)
     active = models.BooleanField(default=True)
+
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
@@ -20,15 +24,7 @@ class Base(models.Model):
             # Newly created object, so set slug
             self.slug = slugify(self.name)
 
-        super(test, self).save(*args, **kwargs)
+        super(Base, self).save(*args, **kwargs)
 
-
-class BaseOffense(Base):
-    poison_damage = models.PositiveSmallIntegerField(default=0)
-    fire_damage = models.PositiveSmallIntegerField(default=0)
-    cold_damage = models.PositiveSmallIntegerField(default=0)
-    acid_damage = models.PositiveSmallIntegerField(default=0)
-    electricity_damage = models.PositiveSmallIntegerField(default=0)
-
-    class Meta:
-        abstract = True
+    def __unicode__(self):
+       return self.name

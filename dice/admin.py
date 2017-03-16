@@ -1,3 +1,4 @@
 from django.contrib import admin
+from dice.models import DieSet
 
-# Register your models here.
+admin.site.register(DieSet)

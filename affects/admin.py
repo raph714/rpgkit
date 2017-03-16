@@ -1,3 +1,4 @@
 from django.contrib import admin
+from affects.models import Affect
 
-# Register your models here.
+admin.site.register(Affect)

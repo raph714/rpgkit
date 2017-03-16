@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from base.models import BaseOffense
+from base.models import Base
 
 
-class Spell(BaseOffense):
+class Spell(Base):
     min_level = models.PositiveSmallIntegerField(default=1)
     mana_cost = models.PositiveSmallIntegerField(default=1)
     #distance in meters

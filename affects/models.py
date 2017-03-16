@@ -50,3 +50,12 @@ class Affect(Base):
 
             setattr(obj, self.attribute, new_val)
 
+    def remove(self, obj):
+        if hasattr(obj, self.attribute):
+            cur_val = getattr(obj. self.attribute)
+            if self.affect_type == ADD:
+                new_val = cur_val - self.modifier
+            else:
+                new_val = cur_val / self.modifier
+
+            setattr(obj, self.attribute, new_val)
