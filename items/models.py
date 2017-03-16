@@ -13,6 +13,9 @@ class Item(Base):
     weight = models.PositiveSmallIntegerField(default=0)
     for_sale = models.BooleanField(default=False)
 
+    def get_roll(self):
+        return self.die_set.roll()
+
 
 class Weapon(Item):
     """

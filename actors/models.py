@@ -6,11 +6,11 @@ from items.models import Armor, Jewelry
 
 
 class ActorMessageManager(models.Manager):
-    def send_message(self, actor, name, description):
+    def send_message(self, actor, message):
         message = ActorMessage()
-        message.name = name
-        message.description = description
         message.recipient = actor
+        message.name = "message to %s" % actor.name
+        message.description = description
         message.save()
 
 
@@ -71,6 +71,7 @@ class Actor(Base):
     fire_resist = models.PositiveSmallIntegerField(default=10)
     cold_resist = models.PositiveSmallIntegerField(default=10)
     acid_resist = models.PositiveSmallIntegerField(default=10)
+    electricity_resist = models.PositiveSmallIntegerField(default=10)
 
     level = models.PositiveSmallIntegerField(default=1)
     hp = models.PositiveSmallIntegerField(default=10)
@@ -85,7 +86,9 @@ class Actor(Base):
     """
     The rest of these are independent of current level and do not need a base version.
     """
-    damage_bonus = models.PositiveSmallIntegerField(default=0)
+    damage_bonus_melee = models.PositiveSmallIntegerField(default=0)
+    damage_bonus_range = models.PositiveSmallIntegerField(default=0)
+
     #Special kinds of damage that are done on top of, or instead of, regular attack damage.
     damage_bonus_poison = models.PositiveSmallIntegerField(default=0)
     damage_bonus_fire = models.PositiveSmallIntegerField(default=0)
@@ -260,7 +263,6 @@ class Actor(Base):
 
             ActorMessage.objects.send_message(
                 actor=a, 
-                name="Too heavy!", 
                 description="You need to get rid of %s kilos from your inventory before you can pick this item up." % overweight
             )
 
@@ -276,5 +278,81 @@ class Actor(Base):
 
         #TODO put it back on the map? or just destroy it?
 
-    def deal_damage(self, actor):
-        pass
+    def deal_melee_damage(self, actor):
+        """
+        If we're not holding a weapon, just assume that we are punching.
+        Punching is 2 damage.
+        """
+        damage = 2
+        if self.weapon:
+            damage = self.weapon.get_roll()
+
+        damage += self.damage_bonus_melee
+
+        message = actor.take_melee_damage(damage)
+        message += actor.take_bonus_damage(self)
+
+        #Now that the damage has been done, check to see if the other guy is dead!
+        message += actor.check_killed()
+
+        ActorMessage.objects.send_message(
+                    actor=self,
+                    description=message
+                )
+            ActorMessage.objects.send_message(
+                    actor=actor,
+                    description=message
+                )
+
+        self.save()
+        actor.save()
+
+
+    def take_bonus_damage(self, actor):
+        """
+        Here we're just going to subtract the resistance bonus damage per type from the attacker's,
+        any leftover does damage.
+
+        We're not going to save at the end of this because the caller should save this object.
+
+        TODO, see notes in the comments.
+        """
+        total_damage = 0
+        message = []
+        if actor.damage_bonus_electricity > self.electricity_resist:
+            dam = actor.damage_bonus_electricity - self.electricity_resist
+            total_damage += dam
+            message.append("+ %s electricity damage" % dam)
+        if actor.damage_bonus_fire > self.fire_resist:
+            dam = actor.damage_bonus_fire - self.fire_resist
+            total_damage += dam
+            message.append("+ %s fire damage" % dam)
+            #go through our pack and see if anything is flammable and roll to see if it burns.
+        if actor.damage_bonus_cold > self.cold_resist:
+            dam = actor.damage_bonus_cold - self.cold_resist
+            total_damage += dam
+            message.append("+ %s cold damage" % dam)
+        if actor.damage_bonus_acid > self.acid_resist:
+            dam = actor.damage_bonus_acid - self.acid_resist
+            total_damage += dam
+            message.append("+ %s acid damage" % dam)
+            #go through our armor and see if something should be damaged by acid.
+        if actor.damage_bonus_poison > self.poison_resist:
+            dam = actor.damage_bonus_poison - self.poison_resist
+            total_damage += dam
+            message.append("+ %s poison damage" % dam)
+            #check and see if we're poisoned.
+        self.hp -= total_damage
+        #figure out if we're dead or not!
+
+        return ', '.join(message)
+
+    def take_melee_damage(self, damage):
+        self.hp -= damage
+        return "%s was dealt %s damage" % (self.name, damage)
+
+    def check_killed(self, actor):
+        """
+        See if we're dead, and award the actor who killed this actor
+        some loot and experience.
+        """
