@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from base.models import Base
+from base.models import Base, BaseGameObject
 from items.models import Armor, Jewelry
 
 
@@ -32,7 +32,9 @@ class Race(Base):
     affects = models.ManyToManyField("affects.Affect", related_name="race_affects", blank=True)
 
 
-class Actor(Base):
+class Actor(BaseGameObject):
+    owner = models.ForeignKey('auth.User', related_name='actors', blank=True, null=True)
+
     """
     Attributes that do not include affects.
     """
@@ -293,20 +295,20 @@ class Actor(Base):
         message += actor.take_bonus_damage(self)
 
         #Now that the damage has been done, check to see if the other guy is dead!
-        message += actor.check_killed()
+        if actor.check_killed():
+            message += "%s killed %s." % (self.name, actor.name)
 
         ActorMessage.objects.send_message(
-                    actor=self,
-                    description=message
-                )
-            ActorMessage.objects.send_message(
-                    actor=actor,
-                    description=message
-                )
+                actor=self,
+                description=message
+            ) 
+        ActorMessage.objects.send_message(
+                actor=actor,
+                description=message
+            )
 
         self.save()
         actor.save()
-
 
     def take_bonus_damage(self, actor):
         """
@@ -353,6 +355,9 @@ class Actor(Base):
 
     def check_killed(self, actor):
         """
-        See if we're dead, and award the actor who killed this actor
-        some loot and experience.
+        See if we're dead. Return a bool.
         """
+        if self.hp <= 0:
+            return True
+        return False
+

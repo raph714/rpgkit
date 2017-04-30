@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from base.models import Base
+from base.models import BaseGameObject
 
 
-class Item(Base):
+class Item(BaseGameObject):
     owner = models.ForeignKey("actors.Actor", related_name="items")
     die_set = models.ForeignKey("dice.DieSet", related_name="items", null=True, blank=True)
     holder_affects = models.ManyToManyField("affects.Affect", related_name="item_holder_affects", blank=True)
