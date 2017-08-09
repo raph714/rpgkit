@@ -23,9 +23,19 @@ schema_view = get_schema_view(title='Pastebin API')
 
 # Serializers define the API representation.
 class UserSerializer(serializers.HyperlinkedModelSerializer):
+    def create(self, validated_data):
+        user = User(
+            username=validated_data['username']
+        )
+        user.set_password(validated_data['password'])
+        user.save()
+        return user
+
     class Meta:
         model = User
-        fields = ('url', 'username', 'email', 'is_staff')
+        fields = ('password', 'username')
+        write_only_fields = ('password',)
+        read_only_fields = ('is_staff', 'is_superuser', 'is_active', 'date_joined',)
 
 # ViewSets define the view behavior.
 class UserViewSet(viewsets.ModelViewSet):
