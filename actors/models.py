@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from django.db import models
 from base.models import Base, BaseGameObject
 from items.models import Armor, Jewelry
+from dice.models import DieSet
 
 
 class ActorMessageManager(models.Manager):
@@ -360,4 +361,21 @@ class Actor(BaseGameObject):
         if self.hp <= 0:
             return True
         return False
+
+    def roll_stats(self):
+        """
+        We're going to roll 4d6, drop the lowest for each stat.
+        """
+        dice = DieSet()
+        dice.number = 4
+        dice.sides = 6
+        stats = {}
+        stats["str"] = dice.roll_drop_lowest()
+        stats["dex"] = dice.roll_drop_lowest()
+        stats["int"] = dice.roll_drop_lowest()
+        stats["con"] = dice.roll_drop_lowest()
+        stats["cha"] = dice.roll_drop_lowest()
+        stats["wis"] = dice.roll_drop_lowest()
+        return stats
+
 

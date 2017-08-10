@@ -9,4 +9,5 @@ router.register(r'actors', views.ActorViewSet)
 
 urlpatterns = [
 	url(r'^', include(router.urls)),
+	url(r'^roll_stats/', views.roll_stats),
 ]

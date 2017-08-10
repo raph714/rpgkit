@@ -9,7 +9,16 @@ class DieSet(models.Model):
     sides = models.PositiveSmallIntegerField()
 
     def roll(self):
-        roll = 0
+        return sum(self.get_rolls())
+
+    def roll_drop_lowest(self):
+        rolls = self.get_rolls()
+        rolls.sort()
+        rolls.pop(0) #ditch lowest roll
+        return sum(rolls)
+
+    def get_rolls(self):
+        rolls = []
         for die in range(0, self.number):
-            roll = roll + random.randint(1, self.sides)
-        return roll
+            rolls.append(random.randint(1, self.sides))
+        return rolls

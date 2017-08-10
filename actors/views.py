@@ -28,3 +28,9 @@ def api_root(request, format=None):
     return Response({
         'actors': reverse('actor_list', request=request, format=format)
     })
+
+@api_view(['GET'])
+def roll_stats(request, format=None):
+    a = Actor()
+    rolls = a.roll_stats()
+    return Response(rolls)
