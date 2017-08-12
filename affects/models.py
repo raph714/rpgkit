@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from django.db import models
 from base.models import Base
+from actors.models import Actor
 
 
 class Affect(Base):

@@ -80,6 +80,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'rpgkit.wsgi.application'
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 
 # Database
@@ -120,9 +121,9 @@ REST_FRAMEWORK = {
      'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
-    )
+    ),
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.AcceptHeaderVersioning'
 }
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.9/topics/i18n/

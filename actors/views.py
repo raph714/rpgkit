@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from actors.models import Actor
+from actors.models import Actor, Race
 from actors.serializers import ActorSerializer
 from rpgkit.permissions import IsOwnerOrReadOnly
 from rest_framework import viewsets
@@ -34,3 +34,7 @@ def roll_stats(request, format=None):
     a = Actor()
     rolls = a.roll_stats()
     return Response(rolls)
+
+@api_view(['GET'])
+def list_races(request, format=None):
+    return Response([{"id": race.id, "name": race.name, "description": race.description} for race in Race.objects.all()])

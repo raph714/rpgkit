@@ -18,6 +18,7 @@ from django.conf.urls import url, include
 from django.contrib.auth.models import User
 from rest_framework import routers, serializers, viewsets
 from rest_framework.schemas import get_schema_view
+from rest_framework.authtoken import views as tokenViews
 
 schema_view = get_schema_view(title='Pastebin API')
 
@@ -48,7 +49,8 @@ router.register(r'users', UserViewSet)
 
 urlpatterns = [
 	url(r'^', include(router.urls)),
-    url(r'^api/v1/', include('api.urls')),
+    url(r'^token/', tokenViews.obtain_auth_token),
+    url(r'^game/', include('api.urls')),
 	url(r'^actors/', include('actors.urls')),
     url(r'^admin/', admin.site.urls),
     url(r'^api-auth/', include('rest_framework.urls')),
