@@ -11,4 +11,6 @@ urlpatterns = [
 	url(r'^', include(router.urls)),
 	url(r'^roll_stats/', views.roll_stats),
 	url(r'^list_races/', views.list_races),
+	url(r'^list_classes/', views.list_classes),
+	url(r'^create_actor/', views.CreateActor.as_view(), name="create_actor"),
 ]

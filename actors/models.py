@@ -33,6 +33,13 @@ class Race(Base):
     affects = models.ManyToManyField("affects.Affect", related_name="race_affects", blank=True)
 
 
+class ActorClass(Base):
+    """
+    Class gives some bonuses and allows use of some specialized items and spells.
+    """
+    affects = models.ManyToManyField("affects.Affect", related_name="class_affects", blank=True)
+
+
 class Actor(BaseGameObject):
     owner = models.ForeignKey('auth.User', related_name='actors', blank=True, null=True)
 
@@ -106,6 +113,7 @@ class Actor(BaseGameObject):
     experience_value = models.PositiveIntegerField(default=10)
 
     race = models.ForeignKey("actors.Race", related_name="actor", blank=True, null=True)
+    actor_class = models.ForeignKey("actors.ActorClass", related_name="actor_class", blank=True, null=True)
 
     inventory = models.ManyToManyField("items.Item", related_name="actor_inventory", blank=True)
     spells = models.ManyToManyField("spells.Spell", related_name="actor_spells", blank=True)

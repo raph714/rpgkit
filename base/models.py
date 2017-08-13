@@ -45,6 +45,8 @@ class BaseGameObject(Base):
         abstract = True
 
     def save(self, *args, **kwargs):
+        from game_map.models import GameMap
+        
         if not self.game_map:
             # Newly created object, so set game_map
             self.game_map = GameMap.objects.map_for_location(self.location, self.game_map_level)
