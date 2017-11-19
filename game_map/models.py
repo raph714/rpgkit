@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from django.db import models
-from base.models import Base
+from base.models import Base, Location
 import googlemaps
 
 gmaps = googlemaps.Client(key='AIzaSyAW-1uN9-jxoiW0v2bP14KC5guXZea7Q3o')
@@ -18,7 +18,22 @@ class GameMapManager(models.Manager):
         Do we limit the edges of the map? what happens then if the user leaves?
         Do we make a map the size of the world?
         """
-        pass
+
+        #1 degree latitude is about 69 miles, longitude varies based on lat. 
+        #.01 degree is .69 miles, so that's what the grid will be based on.
+        #truncate the lat and lon values that were passed in to get the grid origin point.
+        print "calclulating map origin..."
+        lat = float(int(float(location.latitude)*100))/100
+        lon = float(int(float(location.longitude)*100))/100
+        newLoc, created = Location.objects.get_or_create(latitude=lat, longitude=lon, defaults={"latitude": lat, "longitude": lon})
+
+        aMap, created = self.get_or_create(
+            origin_location__latitude=lat, 
+            origin_location__longitude=lon, 
+            level=level, 
+            defaults={"origin_location": newLoc, "level": level})
+
+        return aMap
 
 class GameMap(Base):
     """
@@ -27,18 +42,23 @@ class GameMap(Base):
     """
     #Dungeon level, higher represents farther under ground.
     level = models.PositiveSmallIntegerField(default=1)
-
-    top_right = models.ForeignKey("base.Location", related_name="game_map_top_right", blank=True, null=True)
-    top_left = models.ForeignKey("base.Location", related_name="game_map_top_left", blank=True, null=True)
-    bottom_right = models.ForeignKey("base.Location", related_name="game_map_bottom_right", blank=True, null=True)
-    bottom_left = models.ForeignKey("base.Location", related_name="game_map_bottom_left", blank=True, null=True)
+    origin_location = models.ForeignKey("base.Location", related_name="game_map_origin_location", blank=True, null=True)
+    populate_date = models.DateTimeField(auto_now=True, blank=True, null=True)
 
     objects = GameMapManager()
 
+    def __unicode__(self):
+       return "id: %s lev: %s loc: %s" % (self.id, self.level, self.origin_location)
+
     def points_to_roads(self, points):
         """
-        Points should be a list formatted like ["45.460627,-122.693437", "45.460907,-122.700917"]
+        Points should be a list formatted like ["45.460627,-122.693437", "45.460907,-122.700917"] or [(40.714224, -73.961452), (41.714224, -72.961452)]
         
         TODO interpret the response and get the data we need out of it.
         """
         return gmaps.nearest_roads(p)
+
+    def populate(self):
+        """
+        Figure out what is in the map
+        """

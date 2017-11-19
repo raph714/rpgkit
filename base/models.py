@@ -44,11 +44,14 @@ class BaseGameObject(Base):
     class Meta:
         abstract = True
 
-    def save(self, *args, **kwargs):
-        from game_map.models import GameMap
-        
-        if not self.game_map:
-            # Newly created object, so set game_map
-            self.game_map = GameMap.objects.map_for_location(self.location, self.game_map_level)
-
+    def save(self, *args, **kwargs):    
         super(Base, self).save(*args, **kwargs)
+
+    def update_location(self, location):
+        """
+        Update the location and update the game map for the actor as necessary.
+        """
+        from game_map.models import GameMap
+        self.location = location
+        self.game_map = GameMap.objects.map_for_location(self.location, self.game_map_level)
+        self.save()

@@ -74,6 +74,6 @@ class CreateActor(APIView):
                     )
 
         newActor.save()
-        print(newActor)
+
         return Response({"ok": True})
 

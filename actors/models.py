@@ -133,6 +133,9 @@ class Actor(BaseGameObject):
     sleeping = models.BooleanField(default=False)
     affects = models.ManyToManyField("affects.Affect", related_name="actor_affects", blank=True)
 
+    def __unicode__(self):
+       return "%s - Level %s %s %s" % (self.owner.username, self.level, self.race.name, self.actor_class.name)
+
     def apply_affects(self, affects):
         """
         Activate new affects and add them to the relationship with this actor.
