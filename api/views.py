@@ -59,6 +59,7 @@ class GameState(APIView):
 
         #get a game_map for the area.
         gm = actor.game_map
+        gm.populate()
 
         gmaps = googlemaps.Client(key='AIzaSyAW-1uN9-jxoiW0v2bP14KC5guXZea7Q3o')
 
@@ -77,4 +78,9 @@ class GameState(APIView):
 
         print gmaps.nearest_roads([(40.714224, -73.961452), (41.714224, -72.961452)])
 
-        return Response(ActorSerializer(actor).data)
+        data = {}
+        data['user'] = ActorSerializer(actor).data
+        data['actors'] = []
+        data['items'] = []
+
+        return Response(data)
