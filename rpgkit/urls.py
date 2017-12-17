@@ -51,7 +51,7 @@ urlpatterns = [
 	url(r'^', include(router.urls)),
     url(r'^token/', tokenViews.obtain_auth_token),
     url(r'^game/', include('api.urls')),
-	url(r'^actors/', include('actors.urls')),
+	url(r'^players/', include('players.urls')),
     url(r'^admin/', admin.site.urls),
     url(r'^api-auth/', include('rest_framework.urls')),
     url(r'^schema/$', schema_view),

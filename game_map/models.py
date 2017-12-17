@@ -5,8 +5,10 @@ from base.models import Base, Location
 import googlemaps
 import datetime
 from game_controller.models import GameController
+import random
+from django.conf import settings
 
-gmaps = googlemaps.Client(key='AIzaSyAW-1uN9-jxoiW0v2bP14KC5guXZea7Q3o')
+gmaps = googlemaps.Client(key=settings.GOOGLE_MAPS_KEY)
 
 
 class GameMapManager(models.Manager):
@@ -21,19 +23,12 @@ class GameMapManager(models.Manager):
         Do we limit the edges of the map? what happens then if the user leaves?
         Do we make a map the size of the world?
         """
-
-        #1 degree latitude is about 69 miles, longitude varies based on lat. 
-        #.01 degree is .69 miles, so that's what the grid will be based on.
-        #truncate the lat and lon values that were passed in to get the grid origin point.
-        lat = float(int(float(location.latitude)*100))/100
-        lon = float(int(float(location.longitude)*100))/100
-        newLoc, created = Location.objects.get_or_create(latitude=lat, longitude=lon, defaults={"latitude": lat, "longitude": lon})
+        loc = Location.objects.map_origin_point(location)
 
         aMap, created = self.get_or_create(
-            origin_location__latitude=lat, 
-            origin_location__longitude=lon, 
+            origin_location=loc,
             level=level, 
-            defaults={"origin_location": newLoc, "level": level})
+            defaults={"origin_location": loc, "level": level})
 
         return aMap
 
@@ -53,14 +48,6 @@ class GameMap(Base):
     def __unicode__(self):
        return "id: %s lev: %s loc: %s" % (self.id, self.level, self.origin_location)
 
-    def points_to_roads(self, points):
-        """
-        Points should be a list formatted like ["45.460627,-122.693437", "45.460907,-122.700917"] or [(40.714224, -73.961452), (41.714224, -72.961452)]
-        
-        TODO interpret the response and get the data we need out of it.
-        """
-        return gmaps.nearest_roads(p)
-
     def populate(self):
         """
         Figure out what is in the map
@@ -69,9 +56,30 @@ class GameMap(Base):
         gc = GameController.objects.all()[0]
 
         now = timezone.now()
-        print self.populate_date
-        if now > self.populate_date + datetime.timedelta(minutes=gc.monster_spawn_delay):
-            print "should update"
-        
 
-        
+        # if now > self.populate_date + datetime.timedelta(minutes=gc.monster_spawn_delay):
+        #get a number between .5 and 1.5
+        seed = random.random() + .5
+
+        #multiply by the average num to get the number we're going to make moew
+        num_monsters = int(gc.monster_density * seed)
+
+        #figure out how many monsters are on the map right now... and how many we need to make.
+        monster_count = self.monster_set.count()
+
+        if monster_count < num_monsters:
+            from monsters.models import MonsterType
+            #get some monsters that might show up on this dungeon level.
+            monsters = MonsterType.objects.filter(min_dungeon_level__lte=self.level, max_dungeon_level__gte=self.level)
+            num_to_add = num_monsters - monster_count
+            map_top_corner = Location.objects.map_top_right_point(self.origin_location)
+
+            #number of locs is probably not going to be equal to the amount we wanted when we passed in
+            #because google only gives us back points that were already close to a road.
+            locs = Location.objects.random_locations(self.origin_location, map_top_corner, num_to_add)
+
+            for loc in locs:
+                #TODO deal with monster rarity.
+                index = random.randint(0, monsters.count()-1)
+                aMonster = monsters[index]
+                aMonster.generate(self, loc)

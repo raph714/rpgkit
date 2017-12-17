@@ -5,7 +5,6 @@ from base.models import BaseGameObject
 
 
 class Item(BaseGameObject):
-    owner = models.ForeignKey("actors.Actor", related_name="items")
     die_set = models.ForeignKey("dice.DieSet", related_name="items", null=True, blank=True)
     holder_affects = models.ManyToManyField("affects.Affect", related_name="item_holder_affects", blank=True)
     hit_affects = models.ManyToManyField("affects.Affect", related_name="item_hit_affects", blank=True)

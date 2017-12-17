@@ -21,6 +21,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'l83qxmbqnf*w25n!k3jz92yruzun@qg6$7!#^k9v9sv#$aolpy'
+GOOGLE_MAPS_KEY = 'AIzaSyAW-1uN9-jxoiW0v2bP14KC5guXZea7Q3o'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -47,7 +48,9 @@ INSTALLED_APPS = [
     'affects',
     'spells',
     'game_map',
-    'game_controller'
+    'game_controller',
+    'players',
+    'monsters'
 ]
 
 MIDDLEWARE_CLASSES = [

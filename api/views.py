@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework import authentication, permissions
 from django.contrib.auth.models import User
 from rest_framework.permissions import IsAuthenticated
-from actors.serializers import ActorSerializer
-import googlemaps
+from players.serializers import PlayerSerializer
+from monsters.serializers import MonsterSerializer
 from datetime import datetime
 from game_map.models import GameMap
 from base.models import Location
@@ -50,37 +50,19 @@ class GameState(APIView):
 
         #figure out who the actor is we're talking about here...
         user = request.user
-        actor = user.actors.all()[0]
+        player = user.players.all()[0]
 
         #update the location for the actor.
-        newLoc = Location(latitude=lat, longitude=lon)
-        newLoc.save()
-        actor.update_location(newLoc)
+        newLoc, created = Location.objects.get_or_create(latitude=lat, longitude=lon, defaults={"latitude": lat, "longitude": lon})
+        player.update_location(newLoc)
 
         #get a game_map for the area.
-        gm = actor.game_map
+        gm = player.game_map
         gm.populate()
 
-        gmaps = googlemaps.Client(key='AIzaSyAW-1uN9-jxoiW0v2bP14KC5guXZea7Q3o')
-
-        # # Geocoding an address
-        # geocode_result = gmaps.geocode('1600 Amphitheatre Parkway, Mountain View, CA')
-
-        # # Look up an address with reverse geocoding
-        # reverse_geocode_result = gmaps.reverse_geocode((40.714224, -73.961452))
-
-        # # Request directions via public transit
-        # now = datetime.now()
-        # directions_result = gmaps.directions("Sydney Town Hall",
-        #                                      "Parramatta, NSW",
-        #                                      mode="transit",
-        #                                      departure_time=now)
-
-        print gmaps.nearest_roads([(40.714224, -73.961452), (41.714224, -72.961452)])
-
         data = {}
-        data['user'] = ActorSerializer(actor).data
-        data['actors'] = []
+        data['player'] = PlayerSerializer(player).data
+        data['monsters'] = MonsterSerializer(gm.monster_set, many=True).data
         data['items'] = []
 
         return Response(data)

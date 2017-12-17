@@ -6,43 +6,7 @@ from items.models import Armor, Jewelry
 from dice.models import DieSet
 
 
-class ActorMessageManager(models.Manager):
-    def send_message(self, actor, message):
-        message = ActorMessage()
-        message.recipient = actor
-        message.name = "message to %s" % actor.name
-        message.description = description
-        message.save()
-
-
-class ActorMessage(Base):
-    """
-    These are used for updates that should be retrieved on the API request after they are created, then
-    subsequently deleted.
-    """
-    is_delivered = models.BooleanField(default=False)
-    recipient = models.ForeignKey("actors.Actor", related_name="messages")
-
-    objects = ActorMessageManager()
-
-
-class Race(Base):
-    """
-    Race gives some bonuses to the Actor to which it applies.
-    """
-    affects = models.ManyToManyField("affects.Affect", related_name="race_affects", blank=True)
-
-
-class ActorClass(Base):
-    """
-    Class gives some bonuses and allows use of some specialized items and spells.
-    """
-    affects = models.ManyToManyField("affects.Affect", related_name="class_affects", blank=True)
-
-
 class Actor(BaseGameObject):
-    owner = models.ForeignKey('auth.User', related_name='actors', blank=True, null=True)
-
     """
     Attributes that do not include affects.
     """
@@ -112,29 +76,29 @@ class Actor(BaseGameObject):
     #Were this actor to be killed, how much experience does the victor get?
     experience_value = models.PositiveIntegerField(default=10)
 
-    race = models.ForeignKey("actors.Race", related_name="actor", blank=True, null=True)
-    actor_class = models.ForeignKey("actors.ActorClass", related_name="actor_class", blank=True, null=True)
+    inventory = models.ManyToManyField("items.Item", related_name="%(class)s_inventory", blank=True)
+    spells = models.ManyToManyField("spells.Spell", related_name="%(class)s_spells", blank=True)
 
-    inventory = models.ManyToManyField("items.Item", related_name="actor_inventory", blank=True)
-    spells = models.ManyToManyField("spells.Spell", related_name="actor_spells", blank=True)
+    weapon = models.OneToOneField("items.Weapon", related_name="%(class)s_weapon", blank=True, null=True)
+    range_weapon = models.OneToOneField("items.MissileWeapon", related_name="%(class)s", blank=True, null=True)
+    quiver = models.OneToOneField("items.Missile", related_name="%(class)s", blank=True, null=True)
 
-    weapon = models.OneToOneField("items.Weapon", related_name="actor_weapon", blank=True, null=True)
-    range_weapon = models.OneToOneField("items.MissileWeapon", related_name="actor", blank=True, null=True)
-    quiver = models.OneToOneField("items.Missile", related_name="actor", blank=True, null=True)
-
-    armor = models.OneToOneField("items.Armor", related_name="actor_armor", limit_choices_to={'armor_type': Armor.ARMOR}, blank=True, null=True)
-    helmet = models.OneToOneField("items.Armor", related_name="actor_helmet", limit_choices_to={'armor_type': Armor.HELMET}, blank=True, null=True)
-    cloak = models.OneToOneField("items.Armor", related_name="actor_cloak", limit_choices_to={'armor_type': Armor.CLOAK}, blank=True, null=True)
-    shoes = models.OneToOneField("items.Armor", related_name="actor_shoes", limit_choices_to={'armor_type': Armor.SHOES}, blank=True, null=True)
-    gloves = models.OneToOneField("items.Armor", related_name="actor_gloves", limit_choices_to={'armor_type': Armor.GLOVES}, blank=True, null=True)
-    pants = models.OneToOneField("items.Armor", related_name="actor_pants", limit_choices_to={'armor_type': Armor.PANTS}, blank=True, null=True)
-    shield = models.OneToOneField("items.Armor", related_name="actor_shield", limit_choices_to={'armor_type': Armor.SHIELD}, blank=True, null=True)
+    armor = models.OneToOneField("items.Armor", related_name="%(class)s_armor", limit_choices_to={'armor_type': Armor.ARMOR}, blank=True, null=True)
+    helmet = models.OneToOneField("items.Armor", related_name="%(class)s_helmet", limit_choices_to={'armor_type': Armor.HELMET}, blank=True, null=True)
+    cloak = models.OneToOneField("items.Armor", related_name="%(class)s_cloak", limit_choices_to={'armor_type': Armor.CLOAK}, blank=True, null=True)
+    shoes = models.OneToOneField("items.Armor", related_name="%(class)s_shoes", limit_choices_to={'armor_type': Armor.SHOES}, blank=True, null=True)
+    gloves = models.OneToOneField("items.Armor", related_name="%(class)s_gloves", limit_choices_to={'armor_type': Armor.GLOVES}, blank=True, null=True)
+    pants = models.OneToOneField("items.Armor", related_name="%(class)s_pants", limit_choices_to={'armor_type': Armor.PANTS}, blank=True, null=True)
+    shield = models.OneToOneField("items.Armor", related_name="%(class)s_shield", limit_choices_to={'armor_type': Armor.SHIELD}, blank=True, null=True)
 
     sleeping = models.BooleanField(default=False)
-    affects = models.ManyToManyField("affects.Affect", related_name="actor_affects", blank=True)
+    affects = models.ManyToManyField("affects.Affect", related_name="%(class)s_affects", blank=True)
 
     def __unicode__(self):
-       return "%s - Level %s %s %s" % (self.owner.username, self.level, self.race.name, self.actor_class.name)
+       return "Level %s %s" % (self.level, self.name)
+
+    class Meta:
+        abstract = True
 
     def apply_affects(self, affects):
         """
@@ -388,5 +352,3 @@ class Actor(BaseGameObject):
         stats["cha"] = dice.roll_drop_lowest()
         stats["wis"] = dice.roll_drop_lowest()
         return stats
-
-
