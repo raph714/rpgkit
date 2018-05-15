@@ -31,17 +31,53 @@ class LocationManager(models.Manager):
         newLoc, created = self.get_or_create(latitude=lat, longitude=lon, defaults={"latitude": lat, "longitude": lon})
         return newLoc
 
+    def existing_locations(self, startLoc, endLoc):
+        """
+        Returns a list of locations for a given box determined by two locations.
+        """
+        existingLocations = None
+
+        if startLoc.latitude < 0 and startLoc.longitude < 0:
+            existingLocations = self.filter(latitude__lte=startLoc.latitude, 
+                latitude__gte=endLoc.latitude, 
+                longitude__lte=startLoc.latitude,
+                longitude__gte=endLoc.longitude)
+        elif startLoc.latitude > 0 and startLoc.longitude < 0:
+            existingLocations = self.filter(latitude__gte=startLoc.latitude, 
+                latitude__lte=endLoc.latitude, 
+                longitude__lte=startLoc.latitude,
+                longitude__gte=endLoc.longitude)
+        elif startLoc.latitude < 0 and startLoc.longitude > 0:
+            existingLocations = self.filter(latitude__lte=startLoc.latitude, 
+                latitude__gte=endLoc.latitude, 
+                longitude__gte=startLoc.latitude,
+                longitude__lte=endLoc.longitude)
+        else:
+            existingLocations = self.filter(latitude__gte=startLoc.latitude, 
+                latitude__lte=endLoc.latitude, 
+                longitude__gte=startLoc.latitude,
+                longitude__lte=endLoc.longitude)
+
+        return existingLocations
+
+
     def random_locations(self, startLoc, endLoc, numLocationsToGenerate):
         """
         Give me some random locations inside the rect defined by startLoc and endLoc.
         Make sure the point is on a road! 
         WARNING: Requires external net request (talks to google API)
         This will attempt to make a number of roads equal to the number passed in, but is not guaranteed.
-
-        TODO: Do some checking to see if there are enough points already saved inside this rect to avoid
-        pinging google.
         """
         locPairs = []
+
+        #first let's see if we have some points already inside this square, and we don't need to generate more.
+        
+        existing = self.existing_locations(startLoc, endLoc)
+        # print "found some locations", existing.count()
+        if existing.count() > numLocationsToGenerate:
+            locs = [ existing[i] for i in sorted(random.sample(xrange(len(existing)), numLocationsToGenerate)) ]
+            # print "found some locations, won't generate", locs
+            return locs
 
         for x in range(numLocationsToGenerate):
             lat = random.uniform(float(startLoc.latitude), float(endLoc.latitude))
@@ -83,8 +119,11 @@ class Location(models.Model):
     @staticmethod
     def next_grid_point(point):
         #Sequentially the next grid point for a point, used when finding top right corner of a grid space.
-        #TODO, this won't work at the upper boundaries of lat and lon... or on the boundaries between - and +
-        return Location.trunc(float(point) + .01, 2)
+        #TODO, this won't work at the upper boundaries of lat and lon...
+        if point < 0:
+            return Location.trunc(float(point) - .01, 2)
+        else:
+            return Location.trunc(float(point) + .01, 2)
 
     @staticmethod
     def trunc(num, digits):
@@ -94,9 +133,9 @@ class Location(models.Model):
     @staticmethod
     def points_to_roads(points):
         """
-        Points should be a list formatted like ["45.460627,-122.693437", "45.460907,-122.700917"] or [(40.714224, -73.961452), (41.714224, -72.961452)]
-        
-        TODO interpret the response and get the data we need out of it.
+        Points should be a list formatted like 
+        ["45.460627,-122.693437", "45.460907,-122.700917"] or 
+        [(40.714224, -73.961452), (41.714224, -72.961452)]
         """
         return gmaps.nearest_roads(points)
 
