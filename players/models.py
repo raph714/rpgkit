@@ -44,3 +44,7 @@ class Player(Actor):
 
     def __unicode__(self):
        return "%s - Level %s %s %s" % (self.owner.username, self.level, self.race.name, self.actor_class.name)
+
+    def save(self, *args, **kwargs):    
+        self.display_char = "@"
+        super(Player, self).save(*args, **kwargs)
