@@ -5,11 +5,11 @@ from base.models import Base
 
 class PlayerMessageManager(models.Manager):
     def send_message(self, player, message):
-        message = PlayerMessage()
-        message.recipient = player
-        message.name = "message to %s" % player.name
-        message.description = description
-        message.save()
+        newMsg = PlayerMessage()
+        newMsg.recipient = player
+        newMsg.name = "message to %s" % player.name
+        newMsg.description = message
+        newMsg.save()
 
 
 class PlayerMessage(Base):
@@ -48,3 +48,10 @@ class Player(Actor):
     def save(self, *args, **kwargs):    
         self.display_char = "@"
         super(Player, self).save(*args, **kwargs)
+
+    def get_messages(self):
+        msgString = ""
+        for msg in self.messages.all():
+            msgString += msg.description
+        self.messages.all().delete()
+        return msgString

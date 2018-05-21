@@ -5,6 +5,7 @@ from django.utils.text import slugify
 import googlemaps
 import random
 from django.conf import settings
+from geopy import distance
 
 gmaps = googlemaps.Client(key=settings.GOOGLE_MAPS_KEY)
 
@@ -139,6 +140,13 @@ class Location(models.Model):
         """
         return gmaps.nearest_roads(points)
 
+    def distance_to(self, point):
+        """
+        For two location objects, return their distance in meters.
+        """
+        origin = (self.latitude, self.longitude)
+        destination = (point.latitude, point.longitude)
+        return distance.distance(origin, destination).km * 1000
 
 class Base(models.Model):
     name = models.CharField(max_length=200)

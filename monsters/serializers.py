@@ -8,4 +8,4 @@ class MonsterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Monster
-        fields = ('location', 'level', 'hp', 'name', 'description', 'display_char')
+        fields = ('id', 'location', 'level', 'hp', 'name', 'description', 'display_char')

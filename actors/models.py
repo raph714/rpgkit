@@ -260,6 +260,8 @@ class Actor(BaseGameObject):
         """
         If we're not holding a weapon, just assume that we are punching.
         Punching is 2 damage.
+
+        returns message to be sent back to player
         """
         damage = 2
         if self.weapon:
@@ -274,17 +276,10 @@ class Actor(BaseGameObject):
         if actor.check_killed():
             message += "%s killed %s." % (self.name, actor.name)
 
-        ActorMessage.objects.send_message(
-                actor=self,
-                description=message
-            ) 
-        ActorMessage.objects.send_message(
-                actor=actor,
-                description=message
-            )
-
         self.save()
         actor.save()
+
+        return message
 
     def take_bonus_damage(self, actor):
         """
@@ -329,7 +324,7 @@ class Actor(BaseGameObject):
         self.hp -= damage
         return "%s was dealt %s damage" % (self.name, damage)
 
-    def check_killed(self, actor):
+    def check_killed(self):
         """
         See if we're dead. Return a bool.
         """
@@ -352,3 +347,15 @@ class Actor(BaseGameObject):
         stats["cha"] = dice.roll_drop_lowest()
         stats["wis"] = dice.roll_drop_lowest()
         return stats
+
+    def distance_to(self, actor):
+        """
+        Returns distance in meters.
+        """
+        return self.location.distance_to(actor.location)
+
+    def can_melee(self, actor):
+        if self.distance_to(actor) < 10:
+            return True
+        else:
+            return False

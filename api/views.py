@@ -4,6 +4,7 @@ from rest_framework import authentication, permissions
 from django.contrib.auth.models import User
 from rest_framework.permissions import IsAuthenticated
 from players.serializers import PlayerSerializer
+from players.models import PlayerMessage
 from monsters.serializers import MonsterSerializer
 from datetime import datetime
 from game_map.models import GameMap
@@ -31,7 +32,26 @@ take off an item
 use a staff
 cast a spell
 """
+def state(player):
+    """
+    Returns a dictionary with the game state in it.
+    """
+    #get a game_map for the area.
+    gm = player.game_map
+    gm.populate()
 
+    data = {}
+    data['player'] = PlayerSerializer(player).data
+    data['monsters'] = MonsterSerializer(gm.monster_set, many=True).data
+    data['items'] = []
+    data['message'] = player.get_messages()
+
+    return data
+
+def get_player(request):
+    #figure out who the actor is we're talking about here...
+    user = request.user
+    return user.players.all()[0]
 
 class GameState(APIView):
     """
@@ -49,20 +69,36 @@ class GameState(APIView):
         lon = request.GET['lon']
 
         #figure out who the actor is we're talking about here...
-        user = request.user
-        player = user.players.all()[0]
+        player = get_player(request)
 
         #update the location for the actor.
         newLoc, created = Location.objects.get_or_create(latitude=lat, longitude=lon, defaults={"latitude": lat, "longitude": lon})
         player.update_location(newLoc)
 
-        #get a game_map for the area.
-        gm = player.game_map
-        gm.populate()
+        return Response(state(player))
 
-        data = {}
-        data['player'] = PlayerSerializer(player).data
-        data['monsters'] = MonsterSerializer(gm.monster_set, many=True).data
-        data['items'] = []
+class Action(APIView):
+    authentication_classes = (authentication.TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, format=None):
+        print request.GET
+        action = request.GET['action']
+        target = request.GET['target']
+        target_id = request.GET['target_id']
+        # params = request.GET['params']
+
+        player = get_player(request)
+
+        if action == "meleeAttack":
+            from monsters.models import Monster
+            monster = Monster.objects.get(id=target_id)
+            # see if we can hit said monster
+            if player.can_melee(monster):
+                message = player.deal_melee_damage(monster)
+                print message
+                PlayerMessage.objects.send_message(player, message)
+
+        data = state(player)
 
         return Response(data)
