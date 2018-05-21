@@ -95,9 +95,10 @@ class Action(APIView):
             monster = Monster.objects.get(id=target_id)
             # see if we can hit said monster
             if player.can_melee(monster):
-                message = player.deal_melee_damage(monster)
-                print message
+                message = player.attack_melee(monster)
                 PlayerMessage.objects.send_message(player, message)
+            else:
+                PlayerMessage.objects.send_message(player, "You are too far away to melee.")
 
         data = state(player)
 

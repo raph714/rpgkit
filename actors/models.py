@@ -60,6 +60,8 @@ class Actor(BaseGameObject):
     """
     The rest of these are independent of current level and do not need a base version.
     """
+    tohit_bonus_melee = models.PositiveSmallIntegerField(default=0)
+    tohit_bonus_range = models.PositiveSmallIntegerField(default=0)
     damage_bonus_melee = models.PositiveSmallIntegerField(default=0)
     damage_bonus_range = models.PositiveSmallIntegerField(default=0)
 
@@ -137,43 +139,36 @@ class Actor(BaseGameObject):
         """
         armor_type = item.armor_type
 
-        #Seems like there must be a better way to do this.
         if armor_type == Armor.ARMOR:
             if self.armor:
                 self.remove_affects(*self.armor.affects.all())
-            self.apply_affects(*item.affects.all())
             self.armor = item
         elif armor_type == Armor.HELMET:
             if self.helmet:
                 self.remove_affects(*self.helmet.affects.all())
-            self.apply_affects(*item.affects.all())
             self.helmet = item
         elif armor_type == Armor.CLOAK:
             if self.cloak:
                 self.remove_affects(*self.cloak.affects.all())
-            self.apply_affects(*item.affects.all())
             self.cloak = item
         elif armor_type == Armor.SHOES:
             if self.shoes:
                 self.remove_affects(*self.shoes.affects.all())
-            self.apply_affects(*item.affects.all())
             self.shoes = item
         elif armor_type == Armor.GLOVES:
             if self.gloves:
                 self.remove_affects(*self.gloves.affects.all())
-            self.apply_affects(*item.affects.all())
             self.gloves = item
         elif armor_type == Armor.PANTS:
             if self.pants:
                 self.remove_affects(*self.pants.affects.all())
-            self.apply_affects(*item.affects.all())
             self.pants = item
         elif armor_type == Armor.SHIELD:
             if self.shield:
                 self.remove_affects(*self.shield.affects.all())
-            self.apply_affects(*item.affects.all())
             self.shield = item
 
+        self.apply_affects(*item.affects.all())
         self.save()
 
     def reset_attributes(self):
@@ -256,6 +251,19 @@ class Actor(BaseGameObject):
 
         #TODO put it back on the map? or just destroy it?
 
+    def attack_melee(self, actor):
+        if self.hits_melee(actor):
+            return self.deal_melee_damage(actor)
+        else:
+            return "You missed %s." % actor.name
+
+    def hits_melee(self, actor):
+        #get a die roll
+        roll = DieSet.roll(1, 20)
+        #add to hit bonus
+        roll += self.tohit_bonus_melee
+        return roll >= actor.armor_class
+
     def deal_melee_damage(self, actor):
         """
         If we're not holding a weapon, just assume that we are punching.
@@ -322,7 +330,7 @@ class Actor(BaseGameObject):
 
     def take_melee_damage(self, damage):
         self.hp -= damage
-        return "%s was dealt %s damage" % (self.name, damage)
+        return "%s was dealt %s damage." % (self.name, damage)
 
     def check_killed(self):
         """
@@ -355,7 +363,4 @@ class Actor(BaseGameObject):
         return self.location.distance_to(actor.location)
 
     def can_melee(self, actor):
-        if self.distance_to(actor) < 10:
-            return True
-        else:
-            return False
+        return self.distance_to(actor) < 10
